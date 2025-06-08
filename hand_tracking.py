@@ -1,6 +1,7 @@
 
 import cv2
 import mediapipe as mp
+import requests # Import requests library
 
 def process_frame(img, hands, mp_draw, mp_hands):
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -17,6 +18,13 @@ def process_frame(img, hands, mp_draw, mp_hands):
                 if id == 8: # Index finger tip
                     cv2.circle(img, (cx, cy), 10, (255, 0, 255), cv2.FILLED)
                     cv2.putText(img, f'X: {cx}, Y: {cy}', (cx + 20, cy), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
+                    
+                    # Send hand data to Flask server
+                    try:
+                        requests.post('http://localhost:53102/hand_data', json={'x': cx, 'y': cy})
+                    except requests.exceptions.ConnectionError as e:
+                        print(f"Could not connect to Flask server: {e}. Make sure app.py is running.")
+                    
                     # CUBE CONTROL LOGIC GOES HERE:
                     # On your local machine, you would integrate a 3D rendering library (e.g., OpenGL, Pygame with 3D capabilities, or a dedicated game engine)
                     # to draw and manipulate a cube based on the hand landmark coordinates (cx, cy) or other hand gestures.
