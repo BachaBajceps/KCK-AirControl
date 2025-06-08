@@ -16,8 +16,11 @@ def process_frame(img, hands, mp_draw, mp_hands):
                 cx, cy = int(lm.x * w), int(lm.y * h)
                 if id == 8: # Index finger tip
                     cv2.circle(img, (cx, cy), 10, (255, 0, 255), cv2.FILLED)
-                    # print(f"Index finger tip: ({cx}, {cy})") # Removed print for cleaner output during processing
-                    # Here you would add logic to control the cube based on hand position/gestures
+                    cv2.putText(img, f'X: {cx}, Y: {cy}', (cx + 20, cy), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
+                    # CUBE CONTROL LOGIC GOES HERE:
+                    # On your local machine, you would integrate a 3D rendering library (e.g., OpenGL, Pygame with 3D capabilities, or a dedicated game engine)
+                    # to draw and manipulate a cube based on the hand landmark coordinates (cx, cy) or other hand gestures.
+                    # This environment does not support 3D rendering or multiple display windows.
     return img, results
 
 def main():
