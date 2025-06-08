@@ -24,6 +24,16 @@ def process_frame(img, hands, mp_draw, mp_hands):
     return img, results
 
 def main():
+    # For CPU optimization:
+    # 1. Consider reducing the webcam resolution if performance is critical and lower resolution is acceptable.
+    #    Example: cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    #             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    # 2. The 'min_detection_confidence' and 'min_tracking_confidence' are already set to 0.7,
+    #    which is a common balance. Adjusting these might have minor impact.
+    # 3. If MediaPipe offers a 'lite' model for hands, you might explore that option,
+    #    though it's not directly exposed as a simple parameter here.
+    # 4. Minimize drawing operations if they become a bottleneck.
+
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.7)
     mp_draw = mp.solutions.drawing_utils
