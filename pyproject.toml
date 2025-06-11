@@ -1,0 +1,75 @@
+# pyproject.toml
+
+# ===================================================================
+# Konfiguracja Mypy - Restrykcyjna analiza typów
+# ===================================================================
+[tool.mypy]
+python_version = "3.11"        # Wpisz swoją wersję Pythona
+warn_return_any = true         # Ostrzegaj, jeśli funkcja zwraca typ 'Any'
+warn_unused_configs = true     # Ostrzegaj o nieużywanej konfiguracji
+disallow_untyped_defs = true   # Nie pozwalaj na funkcje bez adnotacji typów
+disallow_untyped_calls = true  # Nie pozwalaj na wywoływanie funkcji bez adnotacji
+no_implicit_optional = true    # Wymagaj jawnego 'Optional[T]' zamiast 'T | None'
+strict_equality = true         # Sprawdzaj typy przy porównaniach (==)
+check_untyped_defs = true      # Sprawdzaj także wnętrza funkcji bez adnotacji
+disallow_incomplete_defs = true # Nie pozwalaj na częściowe adnotacje typów w klasach/funkcjach
+
+# Ścieżki do plików - ignoruj zainstalowane biblioteki
+[[tool.mypy.overrides]]
+module = [
+    "cv2.*",
+    "mediapipe.*",
+    "numpy.*",
+    "matplotlib.*",
+    "PIL.*",
+]
+ignore_missing_imports = true
+
+# ===================================================================
+# Konfiguracja Ruff - Restrykcyjny linter i formatter
+# ===================================================================
+[tool.ruff]
+# Zakomentuj linie, jeśli pliki są w głównym folderze
+# src = ["src"]
+
+# Minimalna wersja Pythona, którą wspierasz
+target-version = "py311"
+
+[tool.ruff.lint]
+# Wybierz WSZYSTKIE możliwe reguły...
+select = ["ALL"]
+
+# ...i wyłącz te, które są bardzo specyficzne, konfliktowe lub niepraktyczne
+# ANN401 - wymaga adnotacji dla `self`, `cls` (często zbędne)
+# D - Reguły docstringów, na razie je pominiemy, żeby nie zaciemniać obrazu
+# G004 - unikać f-stringów dla logowania (dobre dla bibliotek, niekoniecznie aplikacji)
+# PLR0913 - zbyt wiele argumentów w funkcji (dobre, ale czasem niepraktyczne)
+# TD, FIX - reguły dla docstringów TODO/FIXME
+ignore = ["ANN401", "D", "G004", "PLR0913", "TD", "FIX"]
+
+[tool.ruff.format]
+quote-style = "single"  # Używaj pojedynczych cudzysłowów zamiast podwójnych
+
+# ===================================================================
+# Konfiguracja Pylint - Uzupełniająca, restrykcyjna analiza
+# ===================================================================
+[tool.pylint.main]
+# Włącz wszystkie możliwe sprawdzenia. 'y' to alias dla 'yes'/'true'
+enable = "all" 
+# Podaj listę plików/katalogów do sprawdzenia
+args-on-comment = "main.py, camera_handler.py, cube_app.py"
+
+[tool.pylint.messages_control]
+# Wyłączamy te, które są zbyt 'hałaśliwe' lub pokrywają się z Ruff/Black
+disable = [
+    "missing-docstring",          # Na razie nie wymagamy docstringów
+    "invalid-name",               # Pozwala na nazwy typu 'v', 'ax'
+    "too-many-instance-attributes", # GUI często ma wiele atrybutów
+    "too-many-locals",            # Funkcje GUI mogą mieć wiele zmiennych
+    "too-many-statements",        # Metoda update() jest naturalnie długa
+    "too-many-arguments",         # Zezwalamy na więcej argumentów
+    "line-too-long",              # Ruff/formatter sobie z tym poradzi
+    "fixme",                      # Ignoruj komentarze FIXME/TODO
+    "import-error",               # Mypy lepiej to obsługuje
+    "c-extension-no-member",      # Ignoruje błędy dla rozszerzeń C (np. cv2)
+]

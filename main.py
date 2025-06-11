@@ -1,14 +1,13 @@
-# main.py
+"""
+Punkt startowy aplikacji.
+Tworzy główne okno i uruchamia pętlę zdarzeń.
+"""
+
 import tkinter as tk
+
 from cube_app import CubeApp
 
-# --- Punkt startowy aplikacji ---
 if __name__ == "__main__":
-    # Utworzenie głównego okna Tkinter
     root = tk.Tk()
-    
-    # Stworzenie instancji naszej aplikacji
-    app = CubeApp(root, "Sterowanie Kostką 3D za pomocą Gestów")
-    
-    # Uruchomienie głównej pętli zdarzeń Tkinter
+    app = CubeApp(root, "Sterowanie Obiektem 3D za pomocą Gestów")
     root.mainloop()
