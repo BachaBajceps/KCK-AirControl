@@ -1,75 +1,106 @@
-# pyproject.toml
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
 
 # ===================================================================
-# Konfiguracja Mypy - Restrykcyjna analiza typów
+# MYPY – restrykcyjny tryb "strict" + drobne wyjątki
 # ===================================================================
 [tool.mypy]
-python_version = "3.11"        # Wpisz swoją wersję Pythona
-warn_return_any = true         # Ostrzegaj, jeśli funkcja zwraca typ 'Any'
-warn_unused_configs = true     # Ostrzegaj o nieużywanej konfiguracji
-disallow_untyped_defs = true   # Nie pozwalaj na funkcje bez adnotacji typów
-disallow_untyped_calls = true  # Nie pozwalaj na wywoływanie funkcji bez adnotacji
-no_implicit_optional = true    # Wymagaj jawnego 'Optional[T]' zamiast 'T | None'
-strict_equality = true         # Sprawdzaj typy przy porównaniach (==)
-check_untyped_defs = true      # Sprawdzaj także wnętrza funkcji bez adnotacji
-disallow_incomplete_defs = true # Nie pozwalaj na częściowe adnotacje typów w klasach/funkcjach
+python_version            = "3.11"
+strict                    = true          # Włącza pełen zestaw flag "strict"
+warn_unused_configs       = true
+plugins                   = []
 
-# Ścieżki do plików - ignoruj zainstalowane biblioteki
+# Ignorujemy braki typów tylko tam, gdzie naprawdę nie da się inaczej
 [[tool.mypy.overrides]]
 module = [
-    "cv2.*",
-    "mediapipe.*",
-    "numpy.*",
-    "matplotlib.*",
-    "PIL.*",
+  "cv2.*",
+  "mediapipe.*",
+  "numpy.*",
+  "matplotlib.*",
+  "PIL.*",
 ]
 ignore_missing_imports = true
 
 # ===================================================================
-# Konfiguracja Ruff - Restrykcyjny linter i formatter
+# RUFF – linter + formatter (zamiast Flake8/Black/Isort)
 # ===================================================================
 [tool.ruff]
-# Zakomentuj linie, jeśli pliki są w głównym folderze
-# src = ["src"]
-
-# Minimalna wersja Pythona, którą wspierasz
-target-version = "py311"
-
-[tool.ruff.lint]
-# Wybierz WSZYSTKIE możliwe reguły...
-select = ["ALL"]
-
-# ...i wyłącz te, które są bardzo specyficzne, konfliktowe lub niepraktyczne
-# ANN401 - wymaga adnotacji dla `self`, `cls` (często zbędne)
-# D - Reguły docstringów, na razie je pominiemy, żeby nie zaciemniać obrazu
-# G004 - unikać f-stringów dla logowania (dobre dla bibliotek, niekoniecznie aplikacji)
-# PLR0913 - zbyt wiele argumentów w funkcji (dobre, ale czasem niepraktyczne)
-# TD, FIX - reguły dla docstringów TODO/FIXME
-ignore = ["ANN401", "D", "G004", "PLR0913", "TD", "FIX"]
-
-[tool.ruff.format]
-quote-style = "single"  # Używaj pojedynczych cudzysłowów zamiast podwójnych
-
-# ===================================================================
-# Konfiguracja Pylint - Uzupełniająca, restrykcyjna analiza
-# ===================================================================
-[tool.pylint.main]
-# Włącz wszystkie możliwe sprawdzenia. 'y' to alias dla 'yes'/'true'
-enable = "all" 
-# Podaj listę plików/katalogów do sprawdzenia
-args-on-comment = "main.py, camera_handler.py, cube_app.py"
-
-[tool.pylint.messages_control]
-# Wyłączamy te, które są zbyt 'hałaśliwe' lub pokrywają się z Ruff/Black
-disable = [
-    "missing-docstring",          # Na razie nie wymagamy docstringów
-    "invalid-name",               # Pozwala na nazwy typu 'v', 'ax'
-    "too-many-instance-attributes", # GUI często ma wiele atrybutów
-    "too-many-locals",            # Funkcje GUI mogą mieć wiele zmiennych
-    "too-many-statements",        # Metoda update() jest naturalnie długa
-    "too-many-arguments",         # Zezwalamy na więcej argumentów
-    "line-too-long",              # Ruff/formatter sobie z tym poradzi
-    "fixme",                      # Ignoruj komentarze FIXME/TODO
-    "import-error",               # Mypy lepiej to obsługuje
-    "c-extension-no-member",      # Ignoruje błędy dla rozszerzeń C (np. cv2)
+target-version   = "py311"
+line-length      = 100           # Bardziej rygorystycznie niż domyślne 120 znaków
+exclude = [
+  ".git",
+  ".venv",
+  "dist",
+  "build",
 ]
+
+# ---- LINT ----------------------------------------------------------
+[tool.ruff.lint]
+# Zestaw reguł: wszystkie podstawowe + „pyflakes-like” + „bugbear” + „numpy typing”
+select = [
+  # core
+  "E",  # pycodestyle errors
+  "F",  # pyflakes
+  "W",  # pycodestyle warnings
+  "I",  # isort-style import sortowanie
+  "B",  # flake8-bugbear
+  "UP", # pyupgrade
+  "N",  # pep-8 naming
+  "C4", # flake8-comprehensions
+  "SIM",# flake8-simplicity
+  "PERF", # perflint
+  "TRY",# try-ceratops (lepsza obsługa wyjątków)
+  "ARG",# flake8-unused-arguments
+  "DTZ",# flake8-datetimes
+  "TCH",# flake8-type-checking (przenoszenie importów za `if TYPE_CHECKING`)
+]
+
+# Wyłączamy tylko pojedyncze zbyt inwazyjne lub dublujące się reguły
+ignore = [
+  "D",        # Docstringi – pokryje Pylint
+  "ANN101",   # Typ `self` w metodach
+  "ANN102",   # Typ `cls`
+  "B008",     # Użycie zmiennych globalnych w funkcjach (w GUI czasem ok)
+  "TRY003",   # Wyświetlanie wiadomości w wyjątkach (can be noisy)
+]
+
+# ---- FORMAT --------------------------------------------------------
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+
+# ===================================================================
+# PYLINT – użyte jako „druga linia obrony” (lżejsza niż domyślna)
+# ===================================================================
+[tool.pylint]
+disable = [
+  # Duplikaty względem Ruff
+  "C0114", "C0115", "C0116",   # Docstring-related
+  "C0301",                     # line-too-long – Ruff pilnuje długości
+  "R0801",                     # duplicate-code (zbyt hałaśliwe na mały projekt)
+  # GUI-przyjazne wyłączenia
+  "R0902",   # too-many-instance-attributes
+  "R0913",   # too-many-arguments
+  "R0914",   # too-many-locals
+  "R0915",   # too-many-statements
+]
+good-names = ["_, fp, df, i, j, k, x, y"]  # drobne nazwy zmiennych OK w krótkich lambdach
+
+[tool.pylint.'MESSAGES CONTROL']
+enable = "all"
+
+[tool.pylint.master]
+jobs = 0                   # Automatyczna równoległość
+load-plugins = [
+  "pylint_pytest",         # Lepsza obsługa testów (gdyby powstały)
+]
+
+# ===================================================================
+# RUFLINT (opcjonalnie) – sortowanie importów przez Ruff
+# ===================================================================
+[tool.ruff.isort]
+combine-as-imports = true
+force-single-line  = false
+known-third-party  = ["cv2", "mediapipe", "numpy", "matplotlib", "PIL"]
+profile            = "black"
