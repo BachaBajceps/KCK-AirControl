@@ -1,3 +1,4 @@
+# app/widgets.py
 '''
 Moduł zawierający pomocnicze funkcje do budowy komponentów GUI.
 '''
@@ -9,7 +10,10 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 
 
-def create_gesture_panel(parent_frame: ttk.Frame) -> tuple[dict, dict, dict]:
+# Poprawka dla MyPy (type-arg): Dodano precyzyjne typowanie dla słowników
+def create_gesture_panel(
+    parent_frame: ttk.Frame,
+) -> tuple[dict[str, ttk.Frame], dict[str, ttk.Label], dict[str, ttk.Label]]:
     '''Tworzy i zwraca komponenty panelu gestów.'''
     gestures_frame = ttk.LabelFrame(parent_frame, text='Wykryte Gesty', padding=10)
     gestures_frame.pack(fill=tk.X)
@@ -39,7 +43,7 @@ def create_gesture_panel(parent_frame: ttk.Frame) -> tuple[dict, dict, dict]:
         except FileNotFoundError:
             icon_label = ttk.Label(frame, text='[Ikona?]')
             icon_label.pack()
-            logging.warning(f"Icon file not found: {path}")
+            logging.warning("Icon file not found: %s", path)
 
         text_label = ttk.Label(frame, text=name, anchor='center')
         text_label.pack()

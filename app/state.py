@@ -1,3 +1,4 @@
+# app/state.py
 '''
 Moduł definiujący stan aplikacji.
 Zawiera wszystkie dane, które mogą się zmieniać w trakcie działania programu.
@@ -33,8 +34,26 @@ class AppState:
     # Stałe definicje
     shapes: list[str] = field(default_factory=lambda: ['CUBE', 'PYRAMID', 'SPHERE'])
     shape_names: list[str] = field(default_factory=lambda: ['Sześcian', 'Piramida', 'Kula'])
-    colors: list[str] = field(default_factory=lambda: ['#00FFFF', '#FF0000', '#00FF00', '#FFFF00', '#FF00FF', '#FFFFFF'])
-    color_names: list[str] = field(default_factory=lambda: ['Cyjan', 'Czerwony', 'Zielony', 'Żółty', 'Magenta', 'Biały'])
+    colors: list[str] = field(
+        default_factory=lambda: [
+            '#00FFFF',
+            '#FF0000',
+            '#00FF00',
+            '#FFFF00',
+            '#FF00FF',
+            '#FFFFFF',
+        ]
+    )
+    color_names: list[str] = field(
+        default_factory=lambda: [
+            'Cyjan',
+            'Czerwony',
+            'Zielony',
+            'Żółty',
+            'Magenta',
+            'Biały',
+        ]
+    )
 
     # Stan gestów
     gesture_history: deque[str] = field(default_factory=lambda: deque(maxlen=5))

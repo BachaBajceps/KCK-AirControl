@@ -90,6 +90,9 @@ good-names = ["_, fp, df, i, j, k, x, y"]  # drobne nazwy zmiennych OK w krótki
 [tool.pylint.'MESSAGES CONTROL']
 enable = "all"
 
+[tool.pylint.basic]
+ignored-modules = ["mediapipe.framework"]
+
 [tool.pylint.master]
 jobs = 0                   # Automatyczna równoległość
 load-plugins = [

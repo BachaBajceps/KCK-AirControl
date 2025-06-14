@@ -1,9 +1,10 @@
+# app/view_3d.py
 '''
 Moduł odpowiedzialny za renderowanie sceny 3D.
 '''
 import numpy as np
 from matplotlib.axes import Axes
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection  # type: ignore
 
 from app.state import AppState
 
@@ -33,7 +34,7 @@ class ThreeDView:
                       [-.5,-.5,.5], [.5,-.5,.5], [.5,.5,.5], [-.5,.5,.5]])
         faces = [[v[j] for j in i] for i in [[0,1,2,3], [4,5,6,7], [0,1,5,4],
                                              [2,3,7,6], [0,3,7,4], [1,2,6,5]]]
-        self.ax.add_collection3d(
+        self.ax.add_collection3d(  # type: ignore[attr-defined]
             Poly3DCollection(faces, facecolors=color, linewidths=1, edgecolors='k', alpha=0.9)
         )
 
@@ -41,16 +42,16 @@ class ThreeDView:
         v = np.array([[-0.5,-0.5,-0.5], [0.5,-0.5,-0.5], [0.5,0.5,-0.5],
                       [-0.5,0.5,-0.5], [0,0,0.5]])
         faces = [[v[i] for i in j] for j in [[0,1,4], [1,2,4], [2,3,4], [3,0,4], [0,1,2,3]]]
-        self.ax.add_collection3d(
+        self.ax.add_collection3d(  # type: ignore[attr-defined]
             Poly3DCollection(faces, facecolors=color, linewidths=1, edgecolors='k', alpha=0.9)
         )
 
     def _draw_sphere(self, color: str) -> None:
-        u, v = np.mgrid[0:2*np.pi:30j, 0:np.pi:20j]
+        u, v = np.mgrid[0:2*np.pi:30j, 0:np.pi:20j]  # type: ignore[misc]
         x = 0.5 * np.cos(u) * np.sin(v)
         y = 0.5 * np.sin(u) * np.sin(v)
         z = 0.5 * np.cos(v)
-        self.ax.plot_surface(x, y, z, color=color, alpha=0.9)
+        self.ax.plot_surface(x, y, z, color=color, alpha=0.9)  # type: ignore[attr-defined]
 
     def _configure_axes(self, state: AppState) -> None:
         '''Konfiguruje wygląd osi, limity i widok kamery.'''
