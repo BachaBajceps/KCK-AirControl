@@ -101,6 +101,5 @@ load-plugins = [
 # ===================================================================
 [tool.ruff.isort]
 combine-as-imports = true
-force-single-line  = false
-known-third-party  = ["cv2", "mediapipe", "numpy", "matplotlib", "PIL"]
-profile            = "black"
+force-single-line = false
+known-third-party = ["cv2", "mediapipe", "numpy", "matplotlib", "PIL"]

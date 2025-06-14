@@ -7,11 +7,12 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from app.state import AppState
 
+
 class ThreeDView:
     '''Zarządza rysowaniem obiektów 3D na kanwie Matplotlib.'''
     def __init__(self, ax: Axes):
         self.ax = ax
-    
+
     def draw(self, state: AppState) -> None:
         '''Rysuje obiekt na podstawie bieżącego stanu aplikacji.'''
         self.ax.cla()
@@ -57,10 +58,10 @@ class ThreeDView:
         self.ax.set_xlabel('OŚ X', color='red')
         self.ax.set_ylabel('OŚ Y', color='green')
         self.ax.set_zlabel('OŚ Z', color='blue')  # type: ignore[attr-defined]
-        
+
         self.ax.set_box_aspect((1, 1, 1))  # type: ignore[attr-defined]
         self.ax.set_xlim(-0.7, 0.7)
         self.ax.set_ylim(-0.7, 0.7)
         self.ax.set_zlim(-0.7, 0.7)  # type: ignore[attr-defined]
-        
+
         self.ax.view_init(elev=state.angle_x, azim=state.angle_y) # type: ignore[attr-defined]

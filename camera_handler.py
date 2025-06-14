@@ -3,9 +3,8 @@ Moduł odpowiedzialny za obsługę kamery i rozpoznawanie gestów dłoni.
 Zaktualizowany o logikę ponownej inicjalizacji w przypadku utraty połączenia.
 '''
 import logging
-import math
 from dataclasses import dataclass
-from typing import Final, NamedTuple, Optional, Tuple
+from typing import Final, NamedTuple
 
 import cv2
 import mediapipe as mp
@@ -17,9 +16,9 @@ NUM_FINGERS: Final[int] = 4
 
 # Zwracany typ danych z NamedTuple dla czytelności
 class CameraOutput(NamedTuple):
-    frame: Optional[np.ndarray]
+    frame: np.ndarray | None
     gesture: str
-    coords: Optional[Tuple[float, float]]
+    coords: tuple[float, float] | None
 
 
 @dataclass
@@ -41,9 +40,9 @@ class CameraHandler:
     def __init__(self, camera_index: int = 0) -> None:
         self.camera_index = camera_index
         self.config = CameraHandlerConfig()
-        self.vid: Optional[cv2.VideoCapture] = None
-        self.hands: Optional[mp.solutions.hands.Hands] = None
-        self.mp_drawing: Optional[object] = None
+        self.vid: cv2.VideoCapture | None = None
+        self.hands: mp.solutions.hands.Hands | None = None
+        self.mp_drawing: object | None = None
         self.is_camera_available: bool = False
 
         self.initialize_camera()
@@ -71,7 +70,7 @@ class CameraHandler:
             self.mp_drawing = mp.solutions.drawing_utils
             logging.info("Camera initialized successfully.")
             return True
-        
+
         logging.error("Failed to open camera.")
         # Upewnij się, że zwalniamy zasoby, jeśli inicjalizacja się nie powiodła
         if self.vid:
@@ -141,9 +140,9 @@ class CameraHandler:
             hand_landmarks = results.multi_hand_landmarks[0]
             if self.mp_drawing:
                 self.mp_drawing.draw_landmarks(frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
-            
+
             gesture = self._recognize_gesture(hand_landmarks)
-            
+
             if gesture == "OPEN_HAND":
                 control_point = hand_landmarks.landmark[0]
                 hand_coords = (control_point.x, control_point.y)

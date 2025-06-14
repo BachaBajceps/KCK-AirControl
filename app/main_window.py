@@ -4,18 +4,19 @@ Główny moduł aplikacji - klasa MainWindow.
 '''
 import logging
 import tkinter as tk
+from collections.abc import Callable
 from tkinter import ttk
-from typing import Callable
 
 import cv2
 import matplotlib.pyplot as plt
-from PIL import Image, ImageTk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from PIL import Image, ImageTk
 
 from app.state import AppState, Gesture
 from app.view_3d import ThreeDView
 from app.widgets import create_gesture_panel
 from camera_handler import CameraHandler, CameraOutput
+
 
 class MainWindow:
     '''Główna klasa aplikacji Tkinter, która zarządza UI i pętlą zdarzeń.'''
@@ -41,10 +42,10 @@ class MainWindow:
 
         # Budowanie interfejsu
         self._setup_ui()
-        
+
         # Inicjalizacja widoku 3D
         self.view_3d = ThreeDView(self.ax)
-        
+
         # Uruchomienie pętli
         self.update()
         self.window.protocol('WM_DELETE_WINDOW', self.on_closing)
@@ -68,20 +69,20 @@ class MainWindow:
 
         control_panel = ttk.Frame(left_frame)
         control_panel.pack(fill=tk.X, pady=10, side=tk.BOTTOM)
-        
+
         self.gesture_frames, self.gesture_icons, self.gesture_labels = create_gesture_panel(control_panel)
 
         info_frame = ttk.LabelFrame(right_frame, text='Panel Wizualizacji', padding='10')
         info_frame.pack(fill=tk.X, expand=False)
-        
+
         # Reszta UI
         self._create_info_panel_widgets(info_frame)
-        
+
         self.fig = plt.figure(facecolor='#f0f0f0')
         self.ax = self.fig.add_subplot(111, projection='3d')
         self.canvas = FigureCanvasTkAgg(self.fig, master=right_frame)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, pady=(10, 0))
-    
+
     def _create_info_panel_widgets(self, parent: ttk.Frame) -> None:
         color_frame = ttk.Frame(parent)
         color_frame.pack(fill=tk.X, pady=5)
@@ -107,23 +108,23 @@ class MainWindow:
             imgtk = ImageTk.PhotoImage(image=img)
             self.video_label.imgtk = imgtk  # type: ignore[attr-defined]
             self.video_label.configure(image=imgtk, text='')
-        
+
         self._process_gestures(camera_output)
-        
+
         # Wygładzanie ruchu
         self.state.angle_x += (self.state.target_angle_x - self.state.angle_x) * 0.08
         self.state.angle_y += (self.state.target_angle_y - self.state.angle_y) * 0.08
 
         self.view_3d.draw(self.state)
         self.canvas.draw()
-        
+
         self.window.after(15, self.update)
-    
+
     def _process_gestures(self, camera_output: CameraOutput) -> None:
         self.state.gesture_history.append(camera_output.gesture)
         if len(set(self.state.gesture_history)) == 1 and len(self.state.gesture_history) == self.state.gesture_history.maxlen:
             self.state.current_stable_gesture = self.state.gesture_history[0]
-        
+
         self._update_gesture_highlight(self.state.current_stable_gesture or 'UNKNOWN')
 
         stable_gesture = self.state.current_stable_gesture
@@ -131,7 +132,7 @@ class MainWindow:
         if stable_gesture == Gesture.OPEN_HAND.value and camera_output.coords:
             self.state.target_angle_y = (camera_output.coords[0] - 0.5) * -360
             self.state.target_angle_x = (camera_output.coords[1] - 0.5) * 180
-        
+
         if stable_gesture and stable_gesture != self.state.last_action_gesture:
             try:
                 gesture_enum = Gesture(stable_gesture)
@@ -160,13 +161,13 @@ class MainWindow:
     def _handle_rotation_stop(self) -> None:
         self.state.target_angle_x, self.state.target_angle_y = self.state.angle_x, self.state.angle_y
         logging.info("Rotation stopped.")
-        
+
     def _update_gesture_highlight(self, active_gesture: str) -> None:
         for name, frame in self.gesture_frames.items():
             style_name = 'Highlight' if name == active_gesture else ''
             frame.config(style=f'{style_name}.TFrame')
             self.gesture_labels[name].config(style=f'{style_name}.TLabel')
-        
+
         style = ttk.Style()
         style.configure('Highlight.TFrame', background='#a3e4d7')
         style.configure('Highlight.TLabel', background='#a3e4d7', font=('Helvetica', 9, 'bold'))
