@@ -12,6 +12,7 @@ import numpy.typing as npt
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
 
 from app.config import CAMERA_CONFIG
+from app.gesture_recognizer import GestureRecognizer
 
 # Stałe dla uniknięcia "magicznych liczb"
 NUM_FINGERS: Final[int] = 4
@@ -36,6 +37,7 @@ class CameraHandler:
         self.hands: mp.solutions.hands.Hands | None = None
         self.mp_drawing: Any | None = None
         self.is_camera_available: bool = False
+        self.gesture_recognizer = GestureRecognizer()
 
         self.initialize_camera()
 
@@ -69,64 +71,7 @@ class CameraHandler:
         self.is_camera_available = False
         return False
 
-    def _calculate_angle(
-        self, p1: NormalizedLandmark, p2: NormalizedLandmark, p3: NormalizedLandmark
-    ) -> float:
-        a = np.array([p1.x, p1.y])
-        b = np.array([p2.x, p2.y])
-        c = np.array([p3.x, p3.y])
-        ba = a - b
-        bc = c - b
-        cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-        angle = np.arccos(np.clip(cosine_angle, -1.0, 1.0))
-        return float(np.degrees(angle))
-
-    def _get_finger_states(self, lm: list[NormalizedLandmark]) -> dict[str, str]:
-        states = {}
-        thumb_angle = self._calculate_angle(lm[0], lm[2], lm[4])
-
-        is_thumb_straight = thumb_angle > self.config.thumb_straight_angle_threshold
-        states['thumb'] = 'straight' if is_thumb_straight else 'bent'
-
-        finger_indices = {
-            'index': [5, 6, 8],
-            'middle': [9, 10, 12],
-            'ring': [13, 14, 16],
-            'pinky': [17, 18, 20],
-        }
-        for finger, indices in finger_indices.items():
-            angle = self._calculate_angle(lm[indices[0]], lm[indices[1]], lm[indices[2]])
-            if angle > self.config.finger_straight_angle_threshold:
-                states[finger] = 'straight'
-            elif angle < self.config.finger_bent_angle_threshold:
-                states[finger] = 'bent'
-            else:
-                states[finger] = 'unknown'
-        return states
-
-    def _recognize_gesture(self, hand_landmarks: mp.tasks.vision.HandLandmarkerResult) -> str:
-        lm = hand_landmarks.landmark
-        states = self._get_finger_states(lm)
-        finger_names = ['index', 'middle', 'ring', 'pinky']
-        straight_fingers = sum(1 for f in finger_names if states[f] == 'straight')
-        bent_fingers = sum(1 for f in finger_names if states[f] == 'bent')
-
-        if states['thumb'] == 'straight' and straight_fingers == NUM_FINGERS:
-            return "OPEN_HAND"
-        if states['thumb'] == 'bent' and states['index'] == 'straight' and bent_fingers == 3:
-            return 'POINTING'
-        is_victory = (
-            states['index'] == 'straight'
-            and states['middle'] == 'straight'
-            and bent_fingers == 2
-        )
-        if is_victory:
-            return "VICTORY"
-        if states['thumb'] == 'straight' and bent_fingers == NUM_FINGERS:
-            return "THUMBS_UP"
-        if bent_fingers == NUM_FINGERS:
-            return "FIST"
-        return "UNKNOWN"
+    
 
     def process_frame(self) -> CameraOutput:
         '''Przetwarza klatkę i zwraca wynik jako obiekt CameraOutput.'''
@@ -155,7 +100,7 @@ class CameraHandler:
                     frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS
                 )
 
-            gesture = self._recognize_gesture(hand_landmarks)
+            gesture = self.gesture_recognizer.recognize(hand_landmarks.landmark).value
 
             if gesture == "OPEN_HAND":
                 control_point = hand_landmarks.landmark[0]
