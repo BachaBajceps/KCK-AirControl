@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image, ImageTk
 
+from app.config import ANIMATION_CONFIG
+
 from app.state import AppState, Gesture
 from app.view_3d import ThreeDView
 from app.widgets import create_gesture_panel
@@ -138,8 +140,9 @@ class MainWindow:
         self._process_gestures(camera_output)
 
         # Wygładzanie ruchu
-        self.state.angle_x += (self.state.target_angle_x - self.state.angle_x) * 0.08
-        self.state.angle_y += (self.state.target_angle_y - self.state.angle_y) * 0.08
+        smoothing = ANIMATION_CONFIG.SMOOTHING_FACTOR
+        self.state.angle_x += (self.state.target_angle_x - self.state.angle_x) * smoothing
+        self.state.angle_y += (self.state.target_angle_y - self.state.angle_y) * smoothing
 
         self.view_3d.draw(self.state)
         self.canvas.draw()
