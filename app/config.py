@@ -11,30 +11,30 @@ from dataclasses import dataclass
 @dataclass
 class CameraConfig:
     """Konfiguracja parametrów detekcji gestów dla kamery."""
-    MIN_DETECTION_CONFIDENCE: float = 0.6
-    MIN_TRACKING_CONFIDENCE: float = 0.5
-    FINGER_STRAIGHT_ANGLE_THRESHOLD: float = 160.0
-    FINGER_BENT_ANGLE_THRESHOLD: float = 100.0
-    THUMB_STRAIGHT_ANGLE_THRESHOLD: float = 150.0
-    CAMERA_INDEX: int = 0
+    min_detection_confidence: float = 0.6
+    min_tracking_confidence: float = 0.5
+    finger_straight_angle_threshold: float = 160.0
+    finger_bent_angle_threshold: float = 100.0
+    thumb_straight_angle_threshold: float = 150.0
+    camera_index: int = 0
 
 
 @dataclass
 class AnimationConfig:
     """Konfiguracja parametrów animacji i logiki."""
-    SMOOTHING_FACTOR: float = 0.08
-    GESTURE_HISTORY_LENGTH: int = 5
+    smoothing_factor: float = 0.08
+    gesture_history_length: int = 5
 
 
 @dataclass
 class ObjectConfig:
     """Konfiguracja domyślnych właściwości obiektu 3D."""
-    SHAPES: tuple[str, ...] = ('CUBE', 'PYRAMID', 'SPHERE')
-    SHAPE_NAMES: tuple[str, ...] = ('Sześcian', 'Piramida', 'Kula')
-    COLORS: tuple[str, ...] = (
+    shapes: tuple[str, ...] = ('CUBE', 'PYRAMID', 'SPHERE')
+    shape_names: tuple[str, ...] = ('Sześcian', 'Piramida', 'Kula')
+    colors: tuple[str, ...] = (
         '#00FFFF', '#FF0000', '#00FF00', '#FFFF00', '#FF00FF', '#FFFFFF'
     )
-    COLOR_NAMES: tuple[str, ...] = (
+    color_names: tuple[str, ...] = (
         'Cyjan', 'Czerwony', 'Zielony', 'Żółty', 'Magenta', 'Biały'
     )
 

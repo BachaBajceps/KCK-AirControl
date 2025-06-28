@@ -14,7 +14,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image, ImageTk
 
 from app.config import ANIMATION_CONFIG
-
 from app.state import AppState, Gesture
 from app.view_3d import ThreeDView
 from app.widgets import create_gesture_panel
@@ -23,6 +22,9 @@ from camera_handler import CameraHandler, CameraOutput
 # Dalsza część bloku type-checking
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
 
 class MainWindow:
@@ -53,6 +55,11 @@ class MainWindow:
         # Inicjalizacja widoku 3D
         self.view_3d = ThreeDView(self.ax)
 
+        # Deklaracja atrybutów UI, które są inicjalizowane później
+        self.current_color_box: tk.Canvas
+        self.next_color_box: tk.Canvas
+        self.shape_label: ttk.Label
+
         # Uruchomienie pętli
         self.update()
         self.window.protocol('WM_DELETE_WINDOW', self.on_closing)
@@ -82,11 +89,8 @@ class MainWindow:
         gesture_components = create_gesture_panel(control_panel)
         self.gesture_frames, self.gesture_icons, self.gesture_labels = gesture_components
 
-        self.current_color_box: tk.Canvas
-        self.next_color_box: tk.Canvas
-        self.shape_label: ttk.Label
-        self.fig: plt.Figure
-        self.ax: plt.Axes
+        self.fig: Figure
+        self.ax: Axes
         self.canvas: FigureCanvasTkAgg
 
         info_frame = ttk.LabelFrame(
@@ -98,9 +102,9 @@ class MainWindow:
         self._create_info_panel_widgets(info_frame)
 
         self.fig = plt.figure(facecolor='#f0f0f0')
-        self.ax = self.fig.add_subplot(111, projection='3d')  # type: ignore
-        self.canvas = FigureCanvasTkAgg(self.fig, master=right_frame)
-        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+        self.ax = self.fig.add_subplot(111, projection='3d')
+        self.canvas = FigureCanvasTkAgg(self.fig, master=right_frame)  # type: ignore[no-untyped-call]
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, pady=(10, 0))  # type: ignore[no-untyped-call]
 
     def _create_info_panel_widgets(self, parent: ttk.Frame | ttk.LabelFrame) -> None:
         color_frame = ttk.Frame(parent)
@@ -140,12 +144,12 @@ class MainWindow:
         self._process_gestures(camera_output)
 
         # Wygładzanie ruchu
-        smoothing = ANIMATION_CONFIG.SMOOTHING_FACTOR
+        smoothing = ANIMATION_CONFIG.smoothing_factor
         self.state.angle_x += (self.state.target_angle_x - self.state.angle_x) * smoothing
         self.state.angle_y += (self.state.target_angle_y - self.state.angle_y) * smoothing
 
         self.view_3d.draw(self.state)
-        self.canvas.draw()
+        self.canvas.draw()  # type: ignore[no-untyped-call]
 
         self.window.after(15, self.update)
 

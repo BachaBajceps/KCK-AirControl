@@ -34,14 +34,14 @@ class AppState:
     target_angle_y: float = 45.0
 
     # Wczytywanie konfiguracji
-    shapes: tuple[str, ...] = OBJECT_CONFIG.SHAPES
-    shape_names: tuple[str, ...] = OBJECT_CONFIG.SHAPE_NAMES
-    colors: tuple[str, ...] = OBJECT_CONFIG.COLORS
-    color_names: tuple[str, ...] = OBJECT_CONFIG.COLOR_NAMES
+    shapes: tuple[str, ...] = OBJECT_CONFIG.shapes
+    shape_names: tuple[str, ...] = OBJECT_CONFIG.shape_names
+    colors: tuple[str, ...] = OBJECT_CONFIG.colors
+    color_names: tuple[str, ...] = OBJECT_CONFIG.color_names
 
     # Stan gestów
     gesture_history: deque[str] = field(
-        default_factory=lambda: deque(maxlen=ANIMATION_CONFIG.GESTURE_HISTORY_LENGTH)
+        default_factory=lambda: deque(maxlen=ANIMATION_CONFIG.gesture_history_length)
     )
     current_stable_gesture: str | None = None
     last_action_gesture: str | None = None

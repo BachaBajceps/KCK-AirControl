@@ -59,8 +59,6 @@ select = [
 # Wyłączamy tylko pojedyncze zbyt inwazyjne lub dublujące się reguły
 ignore = [
   "D",        # Docstringi – pokryje Pylint
-  "ANN101",   # Typ `self` w metodach
-  "ANN102",   # Typ `cls`
   "B008",     # Użycie zmiennych globalnych w funkcjach (w GUI czasem ok)
   "TRY003",   # Wyświetlanie wiadomości w wyjątkach (can be noisy)
 ]
@@ -84,6 +82,7 @@ disable = [
   "R0913",   # too-many-arguments
   "R0914",   # too-many-locals
   "R0915",   # too-many-statements
+  "R0903",   # too-few-public-methods
 ]
 good-names = ["_, fp, df, i, j, k, x, y"]  # drobne nazwy zmiennych OK w krótkich lambdach
 
@@ -91,7 +90,7 @@ good-names = ["_, fp, df, i, j, k, x, y"]  # drobne nazwy zmiennych OK w krótki
 enable = "all"
 
 [tool.pylint.basic]
-ignored-modules = ["mediapipe.framework"]
+ignored-modules = ["mediapipe.framework", "cv2"]
 
 [tool.pylint.master]
 jobs = 0                   # Automatyczna równoległość
@@ -102,7 +101,7 @@ load-plugins = [
 # ===================================================================
 # RUFLINT (opcjonalnie) – sortowanie importów przez Ruff
 # ===================================================================
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
 force-single-line = false
 known-third-party = ["cv2", "mediapipe", "numpy", "matplotlib", "PIL"]

@@ -44,8 +44,8 @@ class CameraHandler:
         Inicjalizuje lub reinicjalizuje kamerę i model MediaPipe.
         Zwraca True w przypadku sukcesu, False w przeciwnym razie.
         """
-        logging.info("Attempting to initialize camera at index %s...", self.config.CAMERA_INDEX)
-        self.vid = cv2.VideoCapture(self.config.CAMERA_INDEX)
+        logging.info("Attempting to initialize camera at index %s...", self.config.camera_index)
+        self.vid = cv2.VideoCapture(self.config.camera_index)
         self.is_camera_available = self.vid.isOpened()
 
         if self.is_camera_available:
@@ -56,8 +56,8 @@ class CameraHandler:
             self.mp_hands = mp.solutions.hands
             self.hands = self.mp_hands.Hands(
                 max_num_hands=1,
-                min_detection_confidence=self.config.MIN_DETECTION_CONFIDENCE,
-                min_tracking_confidence=self.config.MIN_TRACKING_CONFIDENCE,
+                min_detection_confidence=self.config.min_detection_confidence,
+                min_tracking_confidence=self.config.min_tracking_confidence,
             )
             self.mp_drawing = mp.solutions.drawing_utils
             logging.info("Camera initialized successfully.")
@@ -85,7 +85,7 @@ class CameraHandler:
         states = {}
         thumb_angle = self._calculate_angle(lm[0], lm[2], lm[4])
 
-        is_thumb_straight = thumb_angle > self.config.THUMB_STRAIGHT_ANGLE_THRESHOLD
+        is_thumb_straight = thumb_angle > self.config.thumb_straight_angle_threshold
         states['thumb'] = 'straight' if is_thumb_straight else 'bent'
 
         finger_indices = {
@@ -96,9 +96,9 @@ class CameraHandler:
         }
         for finger, indices in finger_indices.items():
             angle = self._calculate_angle(lm[indices[0]], lm[indices[1]], lm[indices[2]])
-            if angle > self.config.FINGER_STRAIGHT_ANGLE_THRESHOLD:
+            if angle > self.config.finger_straight_angle_threshold:
                 states[finger] = 'straight'
-            elif angle < self.config.FINGER_BENT_ANGLE_THRESHOLD:
+            elif angle < self.config.finger_bent_angle_threshold:
                 states[finger] = 'bent'
             else:
                 states[finger] = 'unknown'
@@ -161,7 +161,7 @@ class CameraHandler:
                 control_point = hand_landmarks.landmark[0]
                 hand_coords = (control_point.x, control_point.y)
 
-        return CameraOutput(frame=frame, gesture=gesture, coords=hand_coords)
+        return CameraOutput(frame=frame.astype(np.uint8), gesture=gesture, coords=hand_coords)
 
     def release(self) -> None:
         '''Zwalnia zasób kamery.'''
