@@ -5,8 +5,9 @@ Główny moduł aplikacji - klasa MainWindow.
 '''
 import logging
 import tkinter as tk
+from collections.abc import Callable
 from tkinter import ttk
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import cv2
 import matplotlib.pyplot as plt
@@ -21,8 +22,6 @@ from camera_handler import CameraHandler, CameraOutput
 
 # Dalsza część bloku type-checking
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
@@ -30,16 +29,19 @@ if TYPE_CHECKING:
 class MainWindow:
     '''Główna klasa aplikacji Tkinter, która zarządza UI i pętlą zdarzeń.'''
 
+    UPDATE_INTERVAL_MS: Final[int] = 15
+
     def __init__(self, window: tk.Tk, window_title: str) -> None:
         # Inicjalizacja komponentów
         self.window = window
         self.state = AppState()
         self.camera_handler = CameraHandler()
 
+        self.style = ttk.Style(self.window)
+        self._configure_styles()
+
         # Konfiguracja okna
         self.window.title(window_title)
-        style = ttk.Style(self.window)
-        style.theme_use('clam')
 
         # Słownik akcji powiązanych z gestami
         self.gesture_actions: dict[Gesture, Callable[[], None]] = {
@@ -59,6 +61,7 @@ class MainWindow:
         self.current_color_box: tk.Canvas
         self.next_color_box: tk.Canvas
         self.shape_label: ttk.Label
+        self._video_photo: ImageTk.PhotoImage | None = None
 
         # Uruchomienie pętli
         self.update()
@@ -87,7 +90,11 @@ class MainWindow:
         control_panel.pack(fill=tk.X, pady=10, side=tk.BOTTOM)
 
         gesture_components = create_gesture_panel(control_panel)
-        self.gesture_frames, self.gesture_icons, self.gesture_labels = gesture_components
+        (
+            self.gesture_frames,
+            self.gesture_icons,
+            self.gesture_labels,
+        ) = gesture_components
 
         self.fig: Figure
         self.ax: Axes
@@ -105,6 +112,12 @@ class MainWindow:
         self.ax = self.fig.add_subplot(111, projection='3d')
         self.canvas = FigureCanvasTkAgg(self.fig, master=right_frame)  # type: ignore[no-untyped-call]
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, pady=(10, 0))  # type: ignore[no-untyped-call]
+
+    def _configure_styles(self) -> None:
+        self.style.theme_use('clam')
+        self.style.configure('Highlight.TFrame', background='#a3e4d7')
+        self.style.configure('Highlight.TLabel', background='#a3e4d7', font=('Helvetica', 9, 'bold'))
+        self.style.configure('TLabel', background='#f0f0f0')
 
     def _create_info_panel_widgets(self, parent: ttk.Frame | ttk.LabelFrame) -> None:
         color_frame = ttk.Frame(parent)
@@ -137,9 +150,8 @@ class MainWindow:
         if camera_output.frame is not None:
             img_rgb = cv2.cvtColor(camera_output.frame, cv2.COLOR_BGR2RGB)
             img = Image.fromarray(img_rgb)
-            imgtk = ImageTk.PhotoImage(image=img)
-            self.video_label.imgtk = imgtk  # type: ignore[attr-defined]
-            self.video_label.configure(image=imgtk, text='')
+            self._video_photo = ImageTk.PhotoImage(image=img)
+            self.video_label.configure(image=self._video_photo, text='')
 
         self._process_gestures(camera_output)
 
@@ -151,7 +163,7 @@ class MainWindow:
         self.view_3d.draw(self.state)
         self.canvas.draw()  # type: ignore[no-untyped-call]
 
-        self.window.after(15, self.update)
+        self.window.after(self.UPDATE_INTERVAL_MS, self.update)
 
     def _process_gestures(self, camera_output: CameraOutput) -> None:
         self.state.gesture_history.append(camera_output.gesture)
@@ -163,21 +175,21 @@ class MainWindow:
         if is_stable_gesture:
             self.state.current_stable_gesture = self.state.gesture_history[0]
 
-        self._update_gesture_highlight(self.state.current_stable_gesture or 'UNKNOWN')
+        active_gesture = self.state.current_stable_gesture or Gesture.UNKNOWN
+        self._update_gesture_highlight(active_gesture)
 
         stable_gesture = self.state.current_stable_gesture
 
-        if stable_gesture == Gesture.OPEN_HAND.value and camera_output.coords:
+        if stable_gesture is Gesture.OPEN_HAND and camera_output.coords:
             self.state.target_angle_y = (camera_output.coords[0] - 0.5) * -360
             self.state.target_angle_x = (camera_output.coords[1] - 0.5) * 180
 
         if stable_gesture and stable_gesture != self.state.last_action_gesture:
-            try:
-                gesture_enum = Gesture(stable_gesture)
-                if gesture_enum in self.gesture_actions:
-                    self.gesture_actions[gesture_enum]()
-            except ValueError:
-                logging.debug("No action for gesture: %s", stable_gesture)
+            action = self.gesture_actions.get(stable_gesture)
+            if action:
+                action()
+            else:
+                logging.debug("No action for gesture: %s", stable_gesture.value)
             self.state.last_action_gesture = stable_gesture
 
     def _handle_color_change(self) -> None:
@@ -202,16 +214,15 @@ class MainWindow:
         self.state.target_angle_y = self.state.angle_y
         logging.info("Rotation stopped.")
 
-    def _update_gesture_highlight(self, active_gesture: str) -> None:
-        for name, frame in self.gesture_frames.items():
-            style_name = 'Highlight' if name == active_gesture else ''
-            frame.config(style=f'{style_name}.TFrame')
-            self.gesture_labels[name].config(style=f'{style_name}.TLabel')
+    def _update_gesture_highlight(self, active_gesture: Gesture) -> None:
+        if active_gesture not in self.gesture_frames:
+            active_gesture = Gesture.UNKNOWN
 
-        style = ttk.Style()
-        style.configure('Highlight.TFrame', background='#a3e4d7')
-        style.configure('Highlight.TLabel', background='#a3e4d7', font=('Helvetica', 9, 'bold'))
-        style.configure('TLabel', background='#f0f0f0')
+        for gesture, frame in self.gesture_frames.items():
+            frame_style = 'Highlight.TFrame' if gesture is active_gesture else 'TFrame'
+            label_style = 'Highlight.TLabel' if gesture is active_gesture else 'TLabel'
+            frame.config(style=frame_style)
+            self.gesture_labels[gesture].config(style=label_style)
 
     def on_closing(self) -> None:
         self.camera_handler.release()

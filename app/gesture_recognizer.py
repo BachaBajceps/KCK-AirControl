@@ -1,9 +1,16 @@
 # app/gesture_recognizer.py
-"""
-Moduł odpowiedzialny za rozpoznawanie gestów na podstawie punktów orientacyjnych dłoni.
-"""
+"""Moduł odpowiedzialny za rozpoznawanie gestów na podstawie punktów orientacyjnych dłoni."""
+from collections.abc import Sequence
+
+import numpy as np
+import numpy.typing as npt
+from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
+
 from app.config import CAMERA_CONFIG
 from app.state import Gesture
+
+LandmarkSequence = Sequence[NormalizedLandmark]
+LandmarkPoint = NormalizedLandmark | Sequence[float]
 
 
 class GestureRecognizer:
@@ -14,7 +21,7 @@ class GestureRecognizer:
     def __init__(self) -> None:
         self.config = CAMERA_CONFIG
 
-    def recognize(self, landmarks: list) -> Gesture:
+    def recognize(self, landmarks: LandmarkSequence) -> Gesture:
         """
         Rozpoznaje gest na podstawie dostarczonych punktów orientacyjnych.
         """
@@ -24,7 +31,7 @@ class GestureRecognizer:
         finger_states = self._get_finger_states(landmarks)
         return self._map_states_to_gesture(finger_states)
 
-    def _get_finger_states(self, landmarks: list) -> dict[str, str]:
+    def _get_finger_states(self, landmarks: LandmarkSequence) -> dict[str, str]:
         """
         Określa stan każdego palca (zgięty, prosty, nieznany).
         """
@@ -79,17 +86,32 @@ class GestureRecognizer:
         return Gesture.UNKNOWN
 
     @staticmethod
-    def _calculate_angle(p1: tuple, p2: tuple, p3: tuple) -> float:
+    def _calculate_angle(p1: LandmarkPoint, p2: LandmarkPoint, p3: LandmarkPoint) -> float:
         """
         Oblicza kąt pomiędzy trzema punktami.
         """
-        import numpy as np
-        p1_arr, p2_arr, p3_arr = np.array(p1), np.array(p2), np.array(p3)
+        p1_arr = GestureRecognizer._point_to_array(p1)
+        p2_arr = GestureRecognizer._point_to_array(p2)
+        p3_arr = GestureRecognizer._point_to_array(p3)
         v1 = p1_arr - p2_arr
         v2 = p3_arr - p2_arr
         dot_product = np.dot(v1, v2)
         norm_product = np.linalg.norm(v1) * np.linalg.norm(v2)
         if norm_product == 0:
             return 0.0
-        angle = np.arccos(dot_product / norm_product)
-        return np.degrees(angle)
+        cos_angle = np.clip(dot_product / norm_product, -1.0, 1.0)
+        angle = np.arccos(cos_angle)
+        return float(np.degrees(angle))
+
+    @staticmethod
+    def _point_to_array(point: LandmarkPoint) -> npt.NDArray[np.float64]:
+        if isinstance(point, NormalizedLandmark):
+            return np.array((point.x, point.y, point.z), dtype=np.float64)
+
+        array = np.asarray(point, dtype=np.float64)
+        flat = array.reshape(-1)
+        if flat.size < 3:
+            padded = np.zeros(3, dtype=np.float64)
+            padded[: flat.size] = flat
+            return padded
+        return flat[:3]

@@ -40,11 +40,11 @@ class AppState:
     color_names: tuple[str, ...] = OBJECT_CONFIG.color_names
 
     # Stan gestów
-    gesture_history: deque[str] = field(
+    gesture_history: deque[Gesture] = field(
         default_factory=lambda: deque(maxlen=ANIMATION_CONFIG.gesture_history_length)
     )
-    current_stable_gesture: str | None = None
-    last_action_gesture: str | None = None
+    current_stable_gesture: Gesture | None = None
+    last_action_gesture: Gesture | None = None
 
     # Metody do modyfikacji stanu
     def next_color(self) -> None:
