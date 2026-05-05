@@ -3,6 +3,8 @@
 Główny moduł aplikacji - klasa MainWindow.
 Łączy wszystkie komponenty w działającą całość.
 '''
+from __future__ import annotations
+
 import logging
 import tkinter as tk
 from collections.abc import Callable
@@ -20,10 +22,10 @@ from app.view_3d import ThreeDView
 from app.widgets import create_gesture_panel
 from camera_handler import CameraHandler, CameraOutput
 
-# Dalsza część bloku type-checking
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
+    from tkinter import Event
 
 
 class MainWindow:
@@ -42,6 +44,11 @@ class MainWindow:
 
         # Konfiguracja okna
         self.window.title(window_title)
+
+        # Status
+        self._status_message = ''
+        self._status_from_action = False
+        self._status_reset_job: str | None = None
 
         # Słownik akcji powiązanych z gestami
         self.gesture_actions: dict[Gesture, Callable[[], None]] = {
@@ -63,9 +70,20 @@ class MainWindow:
         self.shape_label: ttk.Label
         self._video_photo: ImageTk.PhotoImage | None = None
 
+        # Skróty klawiaturowe
+        self._bind_shortcuts()
+
+        # Początkowy status
+        self._set_status('Inicjalizacja...')
+
         # Uruchomienie pętli
         self.update()
         self.window.protocol('WM_DELETE_WINDOW', self.on_closing)
+
+    def _bind_shortcuts(self) -> None:
+        self.window.bind('<c>', self._handle_color_shortcut)
+        self.window.bind('<s>', self._handle_shape_shortcut)
+        self.window.bind('<r>', self._handle_reset_shortcut)
 
     def _setup_ui(self) -> None:
         # Konfiguracja layoutu
@@ -79,11 +97,11 @@ class MainWindow:
         right_frame.grid(row=0, column=1, sticky='nsew')
 
         self.status_bar = ttk.Label(
-            self.window, text='Inicjalizacja...', relief=tk.SUNKEN, anchor='w', padding=(5, 2)
+            self.window, relief=tk.SUNKEN, anchor='w', padding=(5, 2)
         )
         self.status_bar.grid(row=1, column=0, columnspan=2, sticky='ew')
 
-        self.video_label = ttk.Label(left_frame, background='black')
+        self.video_label = ttk.Label(left_frame, background='black', text='Brak obrazu z kamery')
         self.video_label.pack(fill=tk.BOTH, expand=True)
 
         control_panel = ttk.Frame(left_frame)
@@ -152,7 +170,11 @@ class MainWindow:
             img = Image.fromarray(img_rgb)
             self._video_photo = ImageTk.PhotoImage(image=img)
             self.video_label.configure(image=self._video_photo, text='')
+        else:
+            self._video_photo = None
+            self.video_label.configure(image='', text='Brak obrazu z kamery')
 
+        self._update_camera_status(camera_output)
         self._process_gestures(camera_output)
 
         # Wygładzanie ruchu
@@ -165,7 +187,31 @@ class MainWindow:
 
         self.window.after(self.UPDATE_INTERVAL_MS, self.update)
 
+    def _update_camera_status(self, camera_output: CameraOutput) -> None:
+        if camera_output.gesture is Gesture.NO_CAMERA:
+            self._set_status('Brak połączenia z kamerą')
+            return
+        if camera_output.gesture is Gesture.ERROR:
+            self._set_status('Błąd odczytu kamery')
+            return
+        if camera_output.gesture is Gesture.NO_HAND:
+            if not self._status_from_action:
+                self._set_status('Wyczekuję gestu w kadrze')
+            return
+        if not self._status_from_action and self._status_message in {
+            'Inicjalizacja...', 'Brak połączenia z kamerą', 'Błąd odczytu kamery', 'Wyczekuję gestu w kadrze'
+        }:
+            self._set_status('Kamera gotowa - wykonaj gest')
+
     def _process_gestures(self, camera_output: CameraOutput) -> None:
+        if camera_output.gesture in {Gesture.NO_HAND, Gesture.NO_CAMERA, Gesture.ERROR}:
+            if self.state.gesture_history:
+                self.state.gesture_history.clear()
+            self.state.current_stable_gesture = None
+            self.state.last_action_gesture = None
+            self._update_gesture_highlight(Gesture.UNKNOWN)
+            return
+
         self.state.gesture_history.append(camera_output.gesture)
 
         is_stable_gesture = (
@@ -189,7 +235,7 @@ class MainWindow:
             if action:
                 action()
             else:
-                logging.debug("No action for gesture: %s", stable_gesture.value)
+                logging.debug('No action for gesture: %s', stable_gesture.value)
             self.state.last_action_gesture = stable_gesture
 
     def _handle_color_change(self) -> None:
@@ -197,22 +243,27 @@ class MainWindow:
         self.current_color_box.config(bg=self.state.get_current_color())
         next_idx = (self.state.color_index + 1) % len(self.state.colors)
         self.next_color_box.config(bg=self.state.colors[next_idx])
-        logging.info("Color changed to %s.", self.state.color_names[self.state.color_index])
+        color_name = self.state.color_names[self.state.color_index]
+        logging.info('Color changed to %s.', color_name)
+        self._set_status(f'Kolor: {color_name}', is_action=True)
 
     def _handle_shape_change(self) -> None:
         self.state.next_shape()
         shape_name = self.state.shape_names[self.state.shape_index]
         self.shape_label.config(text=f'Kształt: {shape_name}')
-        logging.info("Shape changed to %s.", shape_name)
+        logging.info('Shape changed to %s.', shape_name)
+        self._set_status(f'Kształt: {shape_name}', is_action=True)
 
     def _handle_view_reset(self) -> None:
         self.state.target_angle_x, self.state.target_angle_y = 30.0, 45.0
-        logging.info("View has been reset.")
+        logging.info('View has been reset.')
+        self._set_status('Widok przywrócony', is_action=True)
 
     def _handle_rotation_stop(self) -> None:
         self.state.target_angle_x = self.state.angle_x
         self.state.target_angle_y = self.state.angle_y
-        logging.info("Rotation stopped.")
+        logging.info('Rotation stopped.')
+        self._set_status('Obrót zatrzymany', is_action=True)
 
     def _update_gesture_highlight(self, active_gesture: Gesture) -> None:
         if active_gesture not in self.gesture_frames:
@@ -224,6 +275,40 @@ class MainWindow:
             frame.config(style=frame_style)
             self.gesture_labels[gesture].config(style=label_style)
 
+    def _handle_color_shortcut(self, _event: 'Event') -> str:
+        self._handle_color_change()
+        return 'break'
+
+    def _handle_shape_shortcut(self, _event: 'Event') -> str:
+        self._handle_shape_change()
+        return 'break'
+
+    def _handle_reset_shortcut(self, _event: 'Event') -> str:
+        self._handle_view_reset()
+        return 'break'
+
+    def _set_status(self, message: str, *, is_action: bool = False) -> None:
+        if message == self._status_message and self._status_from_action == is_action:
+            return
+
+        self._status_message = message
+        self._status_from_action = is_action
+        self.status_bar.config(text=message)
+
+        if is_action:
+            if self._status_reset_job is not None:
+                self.window.after_cancel(self._status_reset_job)
+            self._status_reset_job = self.window.after(2000, self._clear_action_status)
+        elif self._status_reset_job is not None:
+            self.window.after_cancel(self._status_reset_job)
+            self._status_reset_job = None
+
+    def _clear_action_status(self) -> None:
+        self._status_from_action = False
+        self._status_reset_job = None
+
     def on_closing(self) -> None:
+        if self._status_reset_job is not None:
+            self.window.after_cancel(self._status_reset_job)
         self.camera_handler.release()
         self.window.destroy()

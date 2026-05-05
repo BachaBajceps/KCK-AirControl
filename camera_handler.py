@@ -124,7 +124,7 @@ class CameraHandler:
                 hand_coords = (control_point.x, control_point.y)
 
         return CameraOutput(
-            frame=frame.astype(np.uint8),
+            frame=frame,
             gesture=gesture,
             coords=hand_coords,
         )
