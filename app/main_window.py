@@ -1,13 +1,13 @@
 # app/main_window.py
-'''
+"""
 Główny moduł aplikacji - klasa MainWindow.
 Łączy wszystkie komponenty w działającą całość.
-'''
+"""
+
 from __future__ import annotations
 
 import logging
 import tkinter as tk
-from collections.abc import Callable
 from tkinter import ttk
 from typing import TYPE_CHECKING, Final
 
@@ -17,19 +17,21 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image, ImageTk
 
 from app.config import ANIMATION_CONFIG
-from app.state import AppState, Gesture
+from app.state import NON_GESTURE_SIGNALS, AppState, Gesture
 from app.view_3d import ThreeDView
 from app.widgets import create_gesture_panel
 from camera_handler import CameraHandler, CameraOutput
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
+    from collections.abc import Callable
     from tkinter import Event
+
+    from matplotlib.figure import Figure
+    from mpl_toolkits.mplot3d.axes3d import Axes3D
 
 
 class MainWindow:
-    '''Główna klasa aplikacji Tkinter, która zarządza UI i pętlą zdarzeń.'''
+    """Główna klasa aplikacji Tkinter, która zarządza UI i pętlą zdarzeń."""
 
     UPDATE_INTERVAL_MS: Final[int] = 15
 
@@ -49,6 +51,8 @@ class MainWindow:
         self._status_message = ''
         self._status_from_action = False
         self._status_reset_job: str | None = None
+        self._update_job: str | None = None
+        self._is_closing = False
 
         # Słownik akcji powiązanych z gestami
         self.gesture_actions: dict[Gesture, Callable[[], None]] = {
@@ -76,9 +80,10 @@ class MainWindow:
         # Początkowy status
         self._set_status('Inicjalizacja...')
 
+        self.window.protocol('WM_DELETE_WINDOW', self.on_closing)
+
         # Uruchomienie pętli
         self.update()
-        self.window.protocol('WM_DELETE_WINDOW', self.on_closing)
 
     def _bind_shortcuts(self) -> None:
         self.window.bind('<c>', self._handle_color_shortcut)
@@ -96,9 +101,7 @@ class MainWindow:
         right_frame = ttk.Frame(self.window, padding='10')
         right_frame.grid(row=0, column=1, sticky='nsew')
 
-        self.status_bar = ttk.Label(
-            self.window, relief=tk.SUNKEN, anchor='w', padding=(5, 2)
-        )
+        self.status_bar = ttk.Label(self.window, relief=tk.SUNKEN, anchor='w', padding=(5, 2))
         self.status_bar.grid(row=1, column=0, columnspan=2, sticky='ew')
 
         self.video_label = ttk.Label(left_frame, background='black', text='Brak obrazu z kamery')
@@ -115,12 +118,10 @@ class MainWindow:
         ) = gesture_components
 
         self.fig: Figure
-        self.ax: Axes
+        self.ax: Axes3D
         self.canvas: FigureCanvasTkAgg
 
-        info_frame = ttk.LabelFrame(
-            right_frame, text='Panel Wizualizacji', padding='10'
-        )
+        info_frame = ttk.LabelFrame(right_frame, text='Panel Wizualizacji', padding='10')
         info_frame.pack(fill=tk.X, expand=False)
 
         # Reszta UI
@@ -134,7 +135,11 @@ class MainWindow:
     def _configure_styles(self) -> None:
         self.style.theme_use('clam')
         self.style.configure('Highlight.TFrame', background='#a3e4d7')
-        self.style.configure('Highlight.TLabel', background='#a3e4d7', font=('Helvetica', 9, 'bold'))
+        self.style.configure(
+            'Highlight.TLabel',
+            background='#a3e4d7',
+            font=('Helvetica', 9, 'bold'),
+        )
         self.style.configure('TLabel', background='#f0f0f0')
 
     def _create_info_panel_widgets(self, parent: ttk.Frame | ttk.LabelFrame) -> None:
@@ -163,6 +168,9 @@ class MainWindow:
         ).pack(pady=5, fill=tk.X)
 
     def update(self) -> None:
+        if self._is_closing:
+            return
+
         camera_output: CameraOutput = self.camera_handler.process_frame()
 
         if camera_output.frame is not None:
@@ -185,7 +193,7 @@ class MainWindow:
         self.view_3d.draw(self.state)
         self.canvas.draw()  # type: ignore[no-untyped-call]
 
-        self.window.after(self.UPDATE_INTERVAL_MS, self.update)
+        self._update_job = self.window.after(self.UPDATE_INTERVAL_MS, self.update)
 
     def _update_camera_status(self, camera_output: CameraOutput) -> None:
         if camera_output.gesture is Gesture.NO_CAMERA:
@@ -199,29 +207,19 @@ class MainWindow:
                 self._set_status('Wyczekuję gestu w kadrze')
             return
         if not self._status_from_action and self._status_message in {
-            'Inicjalizacja...', 'Brak połączenia z kamerą', 'Błąd odczytu kamery', 'Wyczekuję gestu w kadrze'
+            'Inicjalizacja...',
+            'Brak połączenia z kamerą',
+            'Błąd odczytu kamery',
+            'Wyczekuję gestu w kadrze',
         }:
             self._set_status('Kamera gotowa - wykonaj gest')
 
     def _process_gestures(self, camera_output: CameraOutput) -> None:
-        if camera_output.gesture in {Gesture.NO_HAND, Gesture.NO_CAMERA, Gesture.ERROR}:
-            if self.state.gesture_history:
-                self.state.gesture_history.clear()
-            self.state.current_stable_gesture = None
-            self.state.last_action_gesture = None
+        active_gesture = self.state.record_gesture(camera_output.gesture)
+        if camera_output.gesture in NON_GESTURE_SIGNALS:
             self._update_gesture_highlight(Gesture.UNKNOWN)
             return
 
-        self.state.gesture_history.append(camera_output.gesture)
-
-        is_stable_gesture = (
-            len(set(self.state.gesture_history)) == 1 and
-            len(self.state.gesture_history) == self.state.gesture_history.maxlen
-        )
-        if is_stable_gesture:
-            self.state.current_stable_gesture = self.state.gesture_history[0]
-
-        active_gesture = self.state.current_stable_gesture or Gesture.UNKNOWN
         self._update_gesture_highlight(active_gesture)
 
         stable_gesture = self.state.current_stable_gesture
@@ -275,15 +273,15 @@ class MainWindow:
             frame.config(style=frame_style)
             self.gesture_labels[gesture].config(style=label_style)
 
-    def _handle_color_shortcut(self, _event: 'Event') -> str:
+    def _handle_color_shortcut(self, _event: Event[tk.Misc]) -> str:
         self._handle_color_change()
         return 'break'
 
-    def _handle_shape_shortcut(self, _event: 'Event') -> str:
+    def _handle_shape_shortcut(self, _event: Event[tk.Misc]) -> str:
         self._handle_shape_change()
         return 'break'
 
-    def _handle_reset_shortcut(self, _event: 'Event') -> str:
+    def _handle_reset_shortcut(self, _event: Event[tk.Misc]) -> str:
         self._handle_view_reset()
         return 'break'
 
@@ -306,9 +304,18 @@ class MainWindow:
     def _clear_action_status(self) -> None:
         self._status_from_action = False
         self._status_reset_job = None
+        self._set_status('Kamera gotowa - wykonaj gest')
 
     def on_closing(self) -> None:
+        if self._is_closing:
+            return
+        self._is_closing = True
+        if self._update_job is not None:
+            self.window.after_cancel(self._update_job)
+            self._update_job = None
         if self._status_reset_job is not None:
             self.window.after_cancel(self._status_reset_job)
+            self._status_reset_job = None
         self.camera_handler.release()
+        plt.close(self.fig)
         self.window.destroy()

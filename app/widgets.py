@@ -1,7 +1,8 @@
 # app/widgets.py
-'''
+"""
 Moduł zawierający pomocnicze funkcje do budowy komponentów GUI.
-'''
+"""
+
 import logging
 import tkinter as tk
 from pathlib import Path
@@ -17,7 +18,7 @@ ICONS_DIR = Path(__file__).resolve().parent.parent / 'icons'
 def create_gesture_panel(
     parent_frame: ttk.Frame,
 ) -> tuple[dict[Gesture, ttk.Frame], dict[Gesture, ttk.Label], dict[Gesture, ttk.Label]]:
-    '''Tworzy i zwraca komponenty panelu gestów.'''
+    """Tworzy i zwraca komponenty panelu gestów."""
     gestures_frame = ttk.LabelFrame(parent_frame, text='Wykryte Gesty', padding=10)
     gestures_frame.pack(fill=tk.X)
 
@@ -51,7 +52,7 @@ def create_gesture_panel(
             icon_label = ttk.Label(frame, text='[Ikona?]')
             icon_label.pack()
             logging.warning(
-                "Could not load icon for %s gesture from %s: %s",
+                'Could not load icon for %s gesture from %s: %s',
                 gesture.value,
                 icon_path,
                 exc,

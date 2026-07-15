@@ -1,113 +1,119 @@
+# AirControl — sterowanie obiektem 3D gestami
 
-# Sterowanie Obiektem 3D za pomocą Gestów
+Desktopowa aplikacja w Pythonie, która rozpoznaje gesty jednej dłoni z obrazu kamery i
+steruje obiektem 3D renderowanym w interfejsie Tkinter. MediaPipe wykrywa punkty dłoni,
+a klasyfikator oparty na kątach stawów rozpoznaje pięć gestów.
 
-Zaawansowana aplikacja w Pythonie demonstrująca sterowanie wirtualnym obiektem 3D w czasie rzeczywistym za pomocą gestów dłoni wykrywanych przez kamerę internetową. Projekt wykorzystuje zaawansowane techniki rozpoznawania obrazu i prezentuje interaktywny interfejs użytkownika.
+## Funkcje
 
-*(W tym miejscu warto w przyszłości umieścić animowany GIF pokazujący działanie aplikacji)*
+- podgląd obrazu z kamery z naniesionymi punktami dłoni;
+- stabilizacja rozpoznania na kilku kolejnych klatkach;
+- obracanie sześcianu, piramidy lub kuli;
+- zmiana koloru i kształtu, reset widoku oraz zatrzymanie obrotu;
+- automatyczna próba odzyskania połączenia z kamerą;
+- konfiguracja przez zmienne środowiskowe i plik `.env`;
+- interaktywna kalibracja zapisująca wybrane ustawienia do `.env`.
 
+## Sterowanie
 
-## Główne Funkcje
+| Gest | Działanie |
+| --- | --- |
+| Otwarta dłoń | Przesuwanie dłoni obraca obiekt wokół osi X i Y. |
+| Palec wskazujący | Zmienia kolor na następny z palety. |
+| Kciuk w górę | Zmienia kształt: sześcian → piramida → kula. |
+| Victory | Przywraca domyślny widok. |
+| Zaciśnięta pięść | Zatrzymuje obrót w bieżącej pozycji. |
 
-*   **Wyświetlanie obrazu na żywo** z kamery z nakładanymi punktami charakterystycznymi dłoni.
-*   **Renderowanie obiektu 3D** (sześcian, piramida, kula) w dedykowanym panelu.
-*   **Niezawodne wykrywanie gestów** dzięki logice opartej na analizie kątów między stawami, co zapewnia odporność na obrót dłoni i niską jakość kamery.
-*   **Interaktywny interfejs użytkownika (GUI)** zbudowany w `Tkinter` z:
-    *   Wizualnym panelem pokazującym wszystkie dostępne gesty i podświetlającym aktualnie aktywny.
-    *   Podglądem obecnego i następnego koloru obiektu.
-    *   Paskiem statusu informującym o bieżących akcjach.
-*   **Pełne sterowanie obiektem za pomocą 5 różnych gestów.**
+Skróty klawiaturowe: `C` zmienia kolor, `S` zmienia kształt, a `R` resetuje widok.
 
----
+## Wymagania
 
-## Działanie i Obsługa
+- Python 3.11 lub nowszy;
+- kamera internetowa;
+- systemowy Tkinter (jest dołączony do standardowej instalacji Pythona na Windowsie).
 
-Po uruchomieniu aplikacji stań przed kamerą i używaj następujących gestów, aby kontrolować obiekt 3D:
+## Instalacja
 
-| Gest | Ikona | Akcja |
-| :--- | :---: | :--- |
-| **Otwarta dłoń** | ✋ | **Obrót obiektu.** Przesuwaj dłoń po ekranie, aby płynnie obracać kształtem. Ruch lewo-prawo obraca wokół osi Y, a góra-dół wokół osi X. |
-| **Palec wskazujący** | ☝️ | **Zmiana koloru.** Każde pokazanie tego gestu zmienia kolor obiektu na następny z predefiniowanej palety. |
-| **Kciuk w górę** | 👍 | **Zmiana kształtu.** Zmienia renderowany obiekt cyklicznie (Sześcian → Piramida → Kula → Sześcian...). |
-| **Zwycięstwo (Victory)**| ✌️ | **Resetowanie widoku.** Przywraca pozycję i orientację obiektu do domyślnej. |
-| **Zaciśnięta pięść** | ✊ | **Zatrzymanie obrotu.** Gdy dłoń jest zaciśnięta, obiekt przestaje podążać za ruchem i pozostaje w ostatniej pozycji. |
+W PowerShellu:
 
----
-
-## Technologie i Narzędzia
-
-### Główne Technologie
-*   **Python 3.11+**
-*   **Tkinter:** Standardowa biblioteka GUI do tworzenia interfejsu.
-*   **OpenCV-Python (`cv2`):** Do przechwytywania i przetwarzania obrazu z kamery.
-*   **MediaPipe:** Biblioteka Google do precyzyjnego wykrywania dłoni i ich punktów charakterystycznych.
-*   **Matplotlib:** Do renderowania i osadzania sceny 3D w oknie Tkinter.
-*   **NumPy:** Do operacji matematycznych i wektorowych.
-*   **Pillow (`PIL`):** Do konwersji formatów obrazu między OpenCV a Tkinter.
-
-### Narzędzia Deweloperskie
-*   **Mypy:** Do statycznej analizy typów, zapewniającej bezpieczeństwo i poprawność kodu.
-*   **Ruff:** Ultraszybki linter i formatter do utrzymania wysokiej jakości i spójności kodu.
-*   **Pylint:** Dodatkowe, głębokie analizy w poszukiwaniu potencjalnych błędów i "code smells".
-
----
-
-## Struktura Projektu
-
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
+
+Uruchomienie aplikacji:
+
+```powershell
+python main.py
+```
+
+Uruchomienie interaktywnej kalibracji:
+
+```powershell
+python main.py --calibrate
+```
+
+Kalibracja porównuje dziesięć zestawów parametrów. Po zakończeniu najlepsze zaakceptowane
+ustawienia są zapisywane do ignorowanego przez Git pliku `.env` i zostaną użyte przy
+następnym uruchomieniu programu. Pozostałe wpisy w istniejącym `.env` są zachowywane.
+
+## Konfiguracja
+
+Wartości z prawdziwego środowiska mają pierwszeństwo przed `.env`. Obsługiwane klucze:
+
+```dotenv
+CAMERA_INDEX=0
+CAMERA_MIN_DETECTION_CONFIDENCE=0.6
+CAMERA_MIN_TRACKING_CONFIDENCE=0.5
+CAMERA_FINGER_STRAIGHT_ANGLE_THRESHOLD=160
+CAMERA_FINGER_BENT_ANGLE_THRESHOLD=100
+CAMERA_THUMB_STRAIGHT_ANGLE_THRESHOLD=150
+ANIMATION_SMOOTHING_FACTOR=0.08
+ANIMATION_GESTURE_HISTORY_LENGTH=5
+```
+
+Niepoprawne wartości są zastępowane wartościami domyślnymi, a liczby spoza dozwolonego
+zakresu są bezpiecznie ograniczane.
+
+## Struktura projektu
+
+```text
 KCK-AirControl/
-├── icons/                # Folder z ikonami gestów (np. open_hand.png)
-├── main.py               # Punkt startowy aplikacji, inicjuje główne okno.
-├── cube_app.py           # Główna klasa aplikacji, zarządza UI i pętlą zdarzeń.
-├── camera_handler.py     # Moduł odpowiedzialny za obsługę kamery i logikę rozpoznawania gestów.
-├── pyproject.toml        # Plik konfiguracyjny dla Mypy, Ruff i Pylint.
-└── requirements.txt      # Lista zależności projektu.
+├── app/
+│   ├── calibration.py       # interaktywny dobór parametrów
+│   ├── config.py            # konfiguracja i obsługa .env
+│   ├── gesture_recognizer.py
+│   ├── main_window.py       # główne okno i pętla GUI
+│   ├── state.py             # stan oraz stabilizacja gestów
+│   ├── view_3d.py           # renderowanie figur
+│   └── widgets.py           # współdzielone elementy GUI
+├── icons/                   # ikony gestów
+├── tests/                   # testy pytest
+├── camera_handler.py        # OpenCV i MediaPipe
+├── main.py                  # punkt wejścia CLI
+├── requirements.txt         # zależności uruchomieniowe
+└── requirements-dev.txt     # narzędzia deweloperskie
 ```
 
----
+## Rozwój i weryfikacja
 
-## Instalacja i Uruchomienie
+Zainstaluj narzędzia deweloperskie:
 
-1.  **Sklonuj repozytorium** lub pobierz pliki projektu.
+```powershell
+python -m pip install -r requirements-dev.txt
+```
 
-2.  **Utwórz folder `icons`** w głównym katalogu projektu i umieść w nim pliki `.png` dla każdego gestu.
+Pełny zestaw lokalnych kontroli:
 
-3.  **Utwórz i aktywuj wirtualne środowisko** (zalecane):
-    ```bash
-    python -m venv venv
-    # Windows
-    .\venv\Scripts\activate
-    # macOS/Linux
-    source venv/bin/activate
-    ```
+```powershell
+python -m pytest --maxfail=1 --disable-warnings
+python -m ruff check .
+python -m ruff format --check .
+python -m mypy app camera_handler.py main.py
+python -m pylint app camera_handler.py main.py
+```
 
-4.  **Utwórz plik `requirements.txt`** i wklej do niego poniższą zawartość:
-    ```txt
-    opencv-python
-    mediapipe
-    matplotlib
-    numpy
-    Pillow
-    ```
-
-5.  **Zainstaluj wymagane biblioteki**:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-6.  **Uruchom aplikację**:
-    ```bash
-    python main.py
-    ```
-    Aplikacja powinna się uruchomić. Przy pierwszym uruchomieniu system może poprosić o dostęp do kamery.
-
----
-
-## Dalszy Rozwój
-
-Projekt można rozwijać w wielu kierunkach:
-
-*   **Zmiana silnika 3D:** Zastąpienie `Matplotlib` wydajniejszą biblioteką do grafiki 3D, taką jak `PyOpenGL` lub `PyVista`, aby uzyskać płynniejszy rendering.
-*   **Panel Konfiguracji:** Dodanie interfejsu, w którym użytkownik może dostosować czułość obrotu, przypisanie gestów do akcji czy paletę kolorów.
-*   **Więcej Kształtów i Modeli:** Możliwość ładowania prostych modeli 3D z plików (np. `.obj`).
-*   **Obsługa Dwóch Dłoni:** Rozszerzenie logiki do sterowania za pomocą obu dłoni (np. jedna do obrotu, druga do skalowania).
-*   **Spakowanie do Pliku Wykonywalnego:** Użycie narzędzi takich jak `PyInstaller` do stworzenia samodzielnej aplikacji (`.exe`), która nie wymaga instalacji Pythona.
+Projekt nie zawiera kluczy ani innych sekretów. Lokalne pliki `.env` i środowiska `.venv`
+są ignorowane przez Git.

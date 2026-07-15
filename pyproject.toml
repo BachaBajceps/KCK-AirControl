@@ -18,6 +18,7 @@ module = [
   "mediapipe.*",
   "numpy.*",
   "matplotlib.*",
+  "mpl_toolkits.*",
   "PIL.*",
 ]
 ignore_missing_imports = true
@@ -105,3 +106,9 @@ load-plugins = [
 combine-as-imports = true
 force-single-line = false
 known-third-party = ["cv2", "mediapipe", "numpy", "matplotlib", "PIL"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+  'ignore:Type google\._upb\._message\..* uses PyType_Spec.*:DeprecationWarning',
+]

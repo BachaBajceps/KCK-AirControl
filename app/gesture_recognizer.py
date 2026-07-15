@@ -1,6 +1,8 @@
 # app/gesture_recognizer.py
 """Moduł odpowiedzialny za rozpoznawanie gestów na podstawie punktów orientacyjnych dłoni."""
+
 from collections.abc import Sequence
+from typing import Literal, TypeAlias
 
 import numpy as np
 import numpy.typing as npt
@@ -10,7 +12,10 @@ from app.config import CAMERA_CONFIG
 from app.state import Gesture
 
 LandmarkSequence = Sequence[NormalizedLandmark]
-LandmarkPoint = NormalizedLandmark | Sequence[float]
+LandmarkPoint: TypeAlias = NormalizedLandmark | Sequence[float]
+FingerState: TypeAlias = Literal['straight', 'bent', 'unknown']
+FingerStates: TypeAlias = dict[str, FingerState]
+EXPECTED_LANDMARK_COUNT = 21
 
 
 class GestureRecognizer:
@@ -25,17 +30,17 @@ class GestureRecognizer:
         """
         Rozpoznaje gest na podstawie dostarczonych punktów orientacyjnych.
         """
-        if not landmarks:
+        if len(landmarks) < EXPECTED_LANDMARK_COUNT:
             return Gesture.UNKNOWN
 
         finger_states = self._get_finger_states(landmarks)
         return self._map_states_to_gesture(finger_states)
 
-    def _get_finger_states(self, landmarks: LandmarkSequence) -> dict[str, str]:
+    def _get_finger_states(self, landmarks: LandmarkSequence) -> FingerStates:
         """
         Określa stan każdego palca (zgięty, prosty, nieznany).
         """
-        states = {}
+        states: FingerStates = {}
         thumb_angle = self._calculate_angle(landmarks[0], landmarks[2], landmarks[4])
 
         is_thumb_straight = thumb_angle > self.config.thumb_straight_angle_threshold
@@ -59,26 +64,24 @@ class GestureRecognizer:
                 states[finger] = 'unknown'
         return states
 
-    def _map_states_to_gesture(self, states: dict[str, str]) -> Gesture:
+    def _map_states_to_gesture(self, states: FingerStates) -> Gesture:
         """
         Mapuje stany palców na konkretny gest.
         """
         if all(s == 'straight' for s in states.values()):
             return Gesture.OPEN_HAND
-        if (
-            states['thumb'] == 'straight' and
-            all(states[f] == 'bent' for f in ['index', 'middle', 'ring', 'pinky'])
+        if states['thumb'] == 'straight' and all(
+            states[f] == 'bent' for f in ('index', 'middle', 'ring', 'pinky')
         ):
             return Gesture.THUMBS_UP
-        if (
-            states['index'] == 'straight' and
-            all(states[f] == 'bent' for f in ['thumb', 'middle', 'ring', 'pinky'])
+        if states['index'] == 'straight' and all(
+            states[f] == 'bent' for f in ('thumb', 'middle', 'ring', 'pinky')
         ):
             return Gesture.POINTING
         if (
-            states['index'] == 'straight' and
-            states['middle'] == 'straight' and
-            all(states[f] == 'bent' for f in ['thumb', 'ring', 'pinky'])
+            states['index'] == 'straight'
+            and states['middle'] == 'straight'
+            and all(states[f] == 'bent' for f in ('thumb', 'ring', 'pinky'))
         ):
             return Gesture.VICTORY
         if all(s == 'bent' for s in states.values()):
@@ -97,7 +100,7 @@ class GestureRecognizer:
         v2 = p3_arr - p2_arr
         dot_product = np.dot(v1, v2)
         norm_product = np.linalg.norm(v1) * np.linalg.norm(v2)
-        if norm_product == 0:
+        if np.isclose(norm_product, 0.0):
             return 0.0
         cos_angle = np.clip(dot_product / norm_product, -1.0, 1.0)
         angle = np.arccos(cos_angle)

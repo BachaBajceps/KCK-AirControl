@@ -104,3 +104,15 @@ def test_recognize_unknown_mix(recognizer: GestureRecognizer) -> None:
         thumb='straight', index='straight', middle='bent', ring='straight', pinky='bent'
     )
     assert recognizer.recognize(landmarks) is Gesture.UNKNOWN
+
+
+def test_recognize_rejects_incomplete_landmark_data(
+    recognizer: GestureRecognizer,
+) -> None:
+    assert recognizer.recognize([NormalizedLandmark()]) is Gesture.UNKNOWN
+
+
+def test_calculate_angle_handles_coincident_points() -> None:
+    point = (1.0, 2.0, 3.0)
+
+    assert GestureRecognizer._calculate_angle(point, point, point) == 0.0

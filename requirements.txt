@@ -1,5 +1,5 @@
-numpy
-matplotlib
-opencv-python
-pillow
-mediapipe
+matplotlib>=3.8,<4
+mediapipe==0.10.21
+numpy>=1.26,<2
+opencv-contrib-python>=4.9,<5
+pillow>=10.2,<13

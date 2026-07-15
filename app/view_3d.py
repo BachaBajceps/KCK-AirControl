@@ -1,22 +1,26 @@
-# app/view_3d.py
-'''
-Moduł odpowiedzialny za renderowanie sceny 3D.
-'''
-import numpy as np
-from matplotlib.axes import Axes
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection  # type: ignore
+"""Rendering of the Matplotlib 3D scene."""
 
-from app.state import AppState
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import numpy as np
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+if TYPE_CHECKING:
+    from mpl_toolkits.mplot3d.axes3d import Axes3D
+
+    from app.state import AppState
 
 
 class ThreeDView:
-    '''Zarządza rysowaniem obiektów 3D na kanwie Matplotlib.'''
-    def __init__(self, ax: Axes):
-        self.ax = ax
+    """Draw the selected shape and configure its 3D axes."""
+
+    def __init__(self, axes: Axes3D) -> None:
+        self.axes = axes
 
     def draw(self, state: AppState) -> None:
-        '''Rysuje obiekt na podstawie bieżącego stanu aplikacji.'''
-        self.ax.cla()
+        self.axes.clear()
         shape_type = state.get_current_shape()
         color = state.get_current_color()
 
@@ -26,42 +30,87 @@ class ThreeDView:
             self._draw_pyramid(color)
         elif shape_type == 'SPHERE':
             self._draw_sphere(color)
+        else:
+            raise ValueError(f'Unsupported shape: {shape_type}')
 
         self._configure_axes(state)
 
     def _draw_cube(self, color: str) -> None:
-        v = np.array([[-.5,-.5,-.5], [.5,-.5,-.5], [.5,.5,-.5], [-.5,.5,-.5],
-                      [-.5,-.5,.5], [.5,-.5,.5], [.5,.5,.5], [-.5,.5,.5]])
-        faces = [[v[j] for j in i] for i in [[0,1,2,3], [4,5,6,7], [0,1,5,4],
-                                             [2,3,7,6], [0,3,7,4], [1,2,6,5]]]
-        self.ax.add_collection3d(  # type: ignore[attr-defined]
-            Poly3DCollection(faces, facecolors=color, linewidths=1, edgecolors='k', alpha=0.9)
+        vertices = np.array(
+            [
+                [-0.5, -0.5, -0.5],
+                [0.5, -0.5, -0.5],
+                [0.5, 0.5, -0.5],
+                [-0.5, 0.5, -0.5],
+                [-0.5, -0.5, 0.5],
+                [0.5, -0.5, 0.5],
+                [0.5, 0.5, 0.5],
+                [-0.5, 0.5, 0.5],
+            ]
+        )
+        face_indices = (
+            (0, 1, 2, 3),
+            (4, 5, 6, 7),
+            (0, 1, 5, 4),
+            (2, 3, 7, 6),
+            (0, 3, 7, 4),
+            (1, 2, 6, 5),
+        )
+        faces = [[vertices[index] for index in face] for face in face_indices]
+        self.axes.add_collection3d(
+            Poly3DCollection(
+                faces,
+                facecolors=color,
+                linewidths=1,
+                edgecolors='black',
+                alpha=0.9,
+            )
         )
 
     def _draw_pyramid(self, color: str) -> None:
-        v = np.array([[-0.5,-0.5,-0.5], [0.5,-0.5,-0.5], [0.5,0.5,-0.5],
-                      [-0.5,0.5,-0.5], [0,0,0.5]])
-        faces = [[v[i] for i in j] for j in [[0,1,4], [1,2,4], [2,3,4], [3,0,4], [0,1,2,3]]]
-        self.ax.add_collection3d(  # type: ignore[attr-defined]
-            Poly3DCollection(faces, facecolors=color, linewidths=1, edgecolors='k', alpha=0.9)
+        vertices = np.array(
+            [
+                [-0.5, -0.5, -0.5],
+                [0.5, -0.5, -0.5],
+                [0.5, 0.5, -0.5],
+                [-0.5, 0.5, -0.5],
+                [0.0, 0.0, 0.5],
+            ]
+        )
+        face_indices = (
+            (0, 1, 4),
+            (1, 2, 4),
+            (2, 3, 4),
+            (3, 0, 4),
+            (0, 1, 2, 3),
+        )
+        faces = [[vertices[index] for index in face] for face in face_indices]
+        self.axes.add_collection3d(
+            Poly3DCollection(
+                faces,
+                facecolors=color,
+                linewidths=1,
+                edgecolors='black',
+                alpha=0.9,
+            )
         )
 
     def _draw_sphere(self, color: str) -> None:
-        u, v = np.mgrid[0:2*np.pi:30j, 0:np.pi:20j]  # type: ignore[misc]
-        x = 0.5 * np.cos(u) * np.sin(v)
-        y = 0.5 * np.sin(u) * np.sin(v)
-        z = 0.5 * np.cos(v)
-        self.ax.plot_surface(x, y, z, color=color, alpha=0.9)  # type: ignore[attr-defined]
+        azimuth = np.linspace(0.0, 2.0 * np.pi, 30)
+        elevation = np.linspace(0.0, np.pi, 20)
+        azimuth_grid, elevation_grid = np.meshgrid(azimuth, elevation)
+        x = 0.5 * np.cos(azimuth_grid) * np.sin(elevation_grid)
+        y = 0.5 * np.sin(azimuth_grid) * np.sin(elevation_grid)
+        z = 0.5 * np.cos(elevation_grid)
+        self.axes.plot_surface(x, y, z, color=color, alpha=0.9)
 
     def _configure_axes(self, state: AppState) -> None:
-        '''Konfiguruje wygląd osi, limity i widok kamery.'''
-        self.ax.set_facecolor('#f0f0f0')
-        self.ax.set_xlabel('OŚ X', color='red')
-        self.ax.set_ylabel('OŚ Y', color='green')
-        self.ax.set_zlabel('OŚ Z', color='blue')  # type: ignore[attr-defined]
-
-        self.ax.set_xlim(-0.7, 0.7)
-        self.ax.set_ylim(-0.7, 0.7)
-        self.ax.set_zlim(-0.7, 0.7)  # type: ignore[attr-defined]
-
-        self.ax.view_init(elev=state.angle_x, azim=state.angle_y)  # type: ignore[attr-defined]
+        self.axes.set_facecolor('#f0f0f0')
+        self.axes.set_xlabel('OŚ X', color='red')
+        self.axes.set_ylabel('OŚ Y', color='green')
+        self.axes.set_zlabel('OŚ Z', color='blue')
+        self.axes.set_xlim(-0.7, 0.7)
+        self.axes.set_ylim(-0.7, 0.7)
+        self.axes.set_zlim(-0.7, 0.7)
+        self.axes.set_box_aspect((1.0, 1.0, 1.0))
+        self.axes.view_init(elev=state.angle_x, azim=state.angle_y)
